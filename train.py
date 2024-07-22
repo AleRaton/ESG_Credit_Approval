@@ -5,23 +5,33 @@ import mlflow.sklearn
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
-from sklearn.linear_model import LinearRegression
 from sklearn.svm import SVR
 from xgboost import XGBRegressor
 from sklearn.impute import SimpleImputer
 import os
 from datetime import datetime
 
-# Set the base directory for all MLflow logs and artifacts
+# Set the base directory for MLflow tracking logs
 tracking_dir = "/workspaces/ESG_Credit_Approval/mlflowlogs/mlruns"
-artifact_dir = os.path.join(tracking_dir, "artifacts")
+# Set a separate directory for artifacts
+artifact_dir = "/workspaces/ESG_Credit_Approval/mlflowlogs/artifacts"
 
 mlflow.set_tracking_uri(f"file://{tracking_dir}")
 
 # Load configuration
-with open('configs/RandomForest.json', 'r') as f:
+model_config_files = {
+    "RandomForestRegressor": 'configs/RandomForest.json',
+    "LogisticRegression": 'configs/LogisticRegression.json',
+    "XGBRegressor": 'configs/XGBoost.json'
+}
+
+# Choose the model type you want to run
+model_type = "RandomForestRegressor"  # Change this to the model you want to run
+
+with open(model_config_files[model_type], 'r') as f:
     config = json.load(f)
 
 # Load CSV data
@@ -45,13 +55,12 @@ random_state = config['data_split']['random_state']
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
 
 # Model selection
-model_type = config['model']['type']
 hyperparameters = config['model']['hyperparameters']
 
 if model_type == 'RandomForestRegressor':
     model = RandomForestRegressor(**hyperparameters)
-elif model_type == 'LinearRegression':
-    model = LinearRegression(**hyperparameters)
+elif model_type == 'LogisticRegression':
+    model = LogisticRegression(**hyperparameters)
 elif model_type == 'SVR':
     model = SVR(**hyperparameters)
 elif model_type == 'XGBRegressor':
@@ -63,7 +72,7 @@ else:
 mlflow.sklearn.autolog()
 
 # Define experiment name (optional)
-experiment_name = f"{model_type} experiment"
+experiment_name = "No_ESG"
 mlflow.set_experiment(experiment_name)
 
 # Create a unique run name
@@ -89,14 +98,22 @@ with mlflow.start_run(run_name=run_name):
     mlflow.log_metric("mae", mae)
     mlflow.log_metric("rmse", rmse)
     mlflow.log_metric("r2", r2)
+    
+    # Log the model in the "model" directory
     mlflow.sklearn.log_model(model, "model")
 
-    # Log config.json
-    mlflow.log_artifact('configs/RandomForest.json')
-    
-    # Generate and log boxplots
-    boxplot_dir = os.path.join(artifact_dir, "boxplots")
+    # Create directories for artifacts
+    eda_dir = os.path.join(artifact_dir, "EDA")
+    boxplot_dir = os.path.join(eda_dir, "boxplots")
     os.makedirs(boxplot_dir, exist_ok=True)
+
+    # Log config.json
+    config_path = os.path.join(artifact_dir, f"{model_type}.json")
+    with open(config_path, 'w') as config_file:
+        json.dump(config, config_file)
+    mlflow.log_artifact(config_path)
+
+    # Generate and log boxplots
     for column in X.columns:
         plt.figure(figsize=(10, 6))
         sns.boxplot(x=X[column])
@@ -111,7 +128,7 @@ with mlflow.start_run(run_name=run_name):
     plt.figure(figsize=(12, 10))
     sns.heatmap(corr, annot=True, cmap='coolwarm', fmt='.2f')
     plt.title('Correlation Matrix')
-    corr_path = os.path.join(artifact_dir, 'correlation_matrix.png')
+    corr_path = os.path.join(eda_dir, 'correlation_matrix.png')
     plt.savefig(corr_path)
     plt.close()
     mlflow.log_artifact(corr_path)

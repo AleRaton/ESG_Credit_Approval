@@ -1,21 +1,23 @@
 {
   "model": {
-    "type": "RandomForestRegressor",
-    "hyperparameters": {
-      "n_estimators": 100,
-      "max_depth": 5
-    }
+      "type": "LogisticRegression",
+      "hyperparameters": {
+          "solver": "liblinear",
+          "penalty": "l2",
+          "C": 1.0,
+          "random_state": 42
+      }
   },
   "data_split": {
-    "test_size": 0.2,
-    "random_state": 12
+      "test_size": 0.2,
+      "random_state": 42
   },
   "feature_selection": {
     "features_to_keep": ["Current_Ratio", "Debt_to_Equity", "Net_Income_to_Assets", "Operating_Margin", "Cash_Ratio", "Operating_Cash_Flow_Ratio"]
   },
   "target_variable": "downside risk",
   "missing_value_imputation": {
-    "enabled": true,
-    "strategy": "mean"
+      "enabled": true,
+      "strategy": "mean"
   }
 }

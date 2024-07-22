@@ -11,7 +11,7 @@
     "random_state": 12
   },
   "feature_selection": {
-    "features_to_keep": ["Current_Ratio", "Debt_to_Equity", "Net_Income_to_Assets", "Operating_Margin", "Cash_Ratio", "Operating_Cash_Flow_Ratio"]
+    "features_to_keep": ["Current_Ratio", "Debt_to_Equity", "Net_Income_to_Assets", "Operating_Margin", "Cash_Ratio", "Operating_Cash_Flow_Ratio", "esg overall", "esg environmental", "esg social", "esg governance"]
   },
   "target_variable": "downside risk",
   "missing_value_imputation": {
