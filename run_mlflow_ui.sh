@@ -1,2 +1,2 @@
 #!/bin/bash
-mlflow ui --backend-store-uri file:///tmp/mlruns --port 5001
+mlflow ui --backend-store-uri file:///mlflowlogs/mlruns --port 5000

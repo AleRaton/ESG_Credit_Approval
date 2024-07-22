@@ -3,4 +3,4 @@ data/bond/
 data/esg/
 data/financial_data/
 data/risk/
-mlruns/
+mlflowlogs/
