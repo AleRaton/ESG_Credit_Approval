@@ -11,12 +11,15 @@ from sklearn.svm import SVR
 from xgboost import XGBRegressor
 from sklearn.impute import SimpleImputer
 
+mlflow.set_tracking_uri("file///tmp/mlruns")  # You can choose any directory you have write access to
+
+
 # Load configuration
-with open('config.json', 'r') as f:
+with open('configs/RandomForest.json', 'r') as f:
     config = json.load(f)
 
 # Load CSV data
-df = pd.read_csv('your_data.csv')
+df = pd.read_csv('data/processed_data/cleaned_data.csv')
 
 # Feature selection
 features = config['feature_selection']['features_to_keep']
