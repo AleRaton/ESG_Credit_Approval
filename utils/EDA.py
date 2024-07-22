@@ -1,35 +1,60 @@
+import matplotlib.pyplot as plt
 import seaborn as sns
+import pandas as pd
+    
 
-def EDA(df,feature,target):
+
+def EDA(df, feature, target):
     bins = 30
-    # Create a figure and a set of subplots
-    fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(18, 12))
-
-    # Histplot
-    sns.histplot(df[feature], bins=bins, ax=axes[0,0])
-    axes[0,0].set_title(f'Distribution of {feature}')
-
-    # Boxplot 
-    sns.boxplot(x=target,y=feature,data=df, ax=axes[1,0])
-    axes[1,0].set_title(f'Boxplot of {feature}')
-
-    # Mean over Time
-    mean = df.groupby(pd.Grouper(key='Year', freq='YE'))[feature].mean().reset_index()
-    sns.lineplot(x='Year', y=feature, data=mean, ax=axes[0,1])
+    
+    # Big title for the feature
+    plt.figure(figsize=(12, 2))
+    plt.text(0.5, 0.5, f'Exploratory Data Analysis for {feature}', 
+             horizontalalignment='center', 
+             verticalalignment='center', 
+             fontsize=24, fontweight='bold')
+    plt.axis('off')
+    plt.show()
+    
+    # Distribution of the feature
+    plt.figure(figsize=(10, 6))
+    sns.histplot(df[feature], bins=bins)
+    plt.title(f'Distribution of {feature}', fontsize=16)
+    plt.xlabel(feature)
+    plt.ylabel('Frequency')
+    plt.show()
+    
+    # Boxplot of the feature against the target
+    plt.figure(figsize=(10, 6))
+    sns.boxplot(x=df[feature])
+    plt.title(f'Boxplot of {feature}', fontsize=16)
+    plt.xlabel(feature)
+    plt.show()
+    
+    # Mean of the feature over time
+    df['Year'] = pd.to_datetime(df['Year'])
+    mean = df.set_index('Year').resample('YE')[feature].mean().reset_index()
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(x='Year', y=feature, data=mean)
+    plt.title(f'Evolution of the Mean of {feature} Over Time (by Year)', fontsize=16)
     plt.xlabel('Year')
     plt.ylabel(f'Mean of {feature}')
-    axes[0,1].set_title(f'Evolution of the mean of {feature} over time (by year)')
-    
-    # Missing Values over Time
-    missing_values_count = df.groupby(pd.Grouper(key='Year', freq='YE'))[feature].apply(lambda x: x.isnull().sum()).reset_index()
-    sns.lineplot(x='Year', y=feature, data=missing_values_count, ax=axes[1,1])
-    plt.xlabel('Year')
-    plt.ylabel(f'Count of missing {feature}')
-    axes[1,1].set_title(f'Evolution of the missing values of {feature} over time (by year)')
-
-    # Adjust layout and show the plot
-    plt.tight_layout()
     plt.show()
+    
+    # Missing values of the feature over time
+    missing_values_count = df.set_index('Year').resample('YE')[feature].apply(lambda x: x.isnull().sum()).reset_index()
+    plt.figure(figsize=(10, 6))
+    sns.lineplot(x='Year', y=feature, data=missing_values_count)
+    plt.title(f'Evolution of Missing Values of {feature} Over Time (by Year)', fontsize=16)
+    plt.xlabel('Year')
+    plt.ylabel(f'Count of Missing {feature}')
+    plt.show()
+
+# Example usage:
+# EDA(your_dataframe, 'your_feature', 'your_target')
+
+# Example usage
+# EDA(df, 'feature_name', 'target_name')
 
 def correlation_matrix(df):  
     plt.figure(figsize=(20,15))

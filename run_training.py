@@ -9,7 +9,7 @@ def run_training(model_name, data_path, param_path):
         print(result.stderr)
 
 if __name__ == "__main__":
-    data_path = "data/intermediate_results/prepared_data.csv"
+    data_path = "data/processed_data/cleaned_data.csv"
     param_path = "models_parameters.json"
     
     # Add your models here

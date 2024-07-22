@@ -1,3 +1,6 @@
 .venv_esg_proj/
-data/
+data/bond/
+data/esg/
+data/financial_data/
+data/risk/
 mlruns/
