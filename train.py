@@ -13,117 +13,122 @@ from xgboost import XGBRegressor
 from sklearn.impute import SimpleImputer
 import os
 from datetime import datetime
-experiment_name = "ESG"
-current_config_path = 'configs/XGBoost_ESG.json'  
+import logging
 
-# Set the base directory for MLflow tracking logs
-tracking_dir = "/workspaces/ESG_Credit_Approval/mlflowlogs/mlruns"
-# Set a separate directory for artifacts
-artifact_dir = "/workspaces/ESG_Credit_Approval/mlflowlogs/artifacts"
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-mlflow.set_tracking_uri(f"file://{tracking_dir}")
+# Load configuration from a file
+def load_config(config_path):
+    with open(config_path, 'r') as f:
+        return json.load(f)
 
-with open(current_config_path, 'r') as f:
-    config = json.load(f)
+# Load and preprocess data
+def load_data(data_path, features, target_variable, imputation_config):
+    df = pd.read_csv(data_path)
+    X = df[features]
+    y = df[target_variable]
 
-# Load CSV data
-df = pd.read_csv('data/processed_data/cleaned_data.csv')
-
-# Feature selection
-features = config['feature_selection']['features_to_keep']
-X = df[features]
-y = df[config['target_variable']]
-
-# Missing value imputation
-if config['missing_value_imputation']['enabled']:
-    strategy = config['missing_value_imputation']['strategy']
-    imputer = SimpleImputer(strategy=strategy)
-    X = imputer.fit_transform(X)
-    X = pd.DataFrame(X, columns=features)
-
-# Data splitting
-test_size = config['data_split']['test_size']
-random_state = config['data_split']['random_state']
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
-
-# Model selection
-model_type = config['model']['type']
-hyperparameters = config['model']['hyperparameters']
-
-if model_type == 'RandomForestRegressor':
-    model = RandomForestRegressor(**hyperparameters)
-elif model_type == 'SVR':
-    model = SVR(**hyperparameters)
-elif model_type == 'XGBRegressor':
-    model = XGBRegressor(**hyperparameters)
-elif model_type == 'Ridge':
-    model = Ridge(**hyperparameters)
-else:
-    raise ValueError(f"Model type {model_type} is not supported.")
-
-# Enable autologging
-mlflow.sklearn.autolog()
-
-# Define experiment name
-mlflow.set_experiment(experiment_name)
-
-# Create a unique run name
-run_name = f"{model_type} run {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-
-with mlflow.start_run(run_name=run_name):
-    # Train model
-    model.fit(X_train, y_train)
+    if imputation_config['enabled']:
+        strategy = imputation_config['strategy']
+        imputer = SimpleImputer(strategy=strategy)
+        X = imputer.fit_transform(X)
+        X = pd.DataFrame(X, columns=features)
     
-    # Predict
-    predictions = model.predict(X_test)
-    
-    # Calculate metrics
-    mse = mean_squared_error(y_test, predictions)
-    mae = mean_absolute_error(y_test, predictions)
-    rmse = mean_squared_error(y_test, predictions, squared=False)
-    r2 = r2_score(y_test, predictions)
-    
-    # Log parameter, metrics, and model
-    mlflow.log_param("model_type", model_type)
-    mlflow.log_params(hyperparameters)
-    mlflow.log_metric("mse", mse)
-    mlflow.log_metric("mae", mae)
-    mlflow.log_metric("rmse", rmse)
-    mlflow.log_metric("r2", r2)
-    
-    # Log the model in the "model" directory
-    mlflow.sklearn.log_model(model, "model")
+    return X, y
 
-    # Create directories for artifacts within the current run's artifact directory
-    run_artifact_dir = mlflow.get_artifact_uri()
-    eda_dir = os.path.join(run_artifact_dir, "EDA")
-    boxplot_dir = os.path.join(eda_dir, "boxplots")
-    os.makedirs(boxplot_dir, exist_ok=True)
+# Split data
+def split_data(X, y, test_size, random_state):
+    return train_test_split(X, y, test_size=test_size, random_state=random_state)
 
-    # Log config.json
-    config_path = os.path.join(run_artifact_dir, f"{model_type}.json")
-    with open(config_path, 'w') as config_file:
-        json.dump(config, config_file)
-    mlflow.log_artifact(config_path, "config")
+# Select model
+def get_model(model_type, hyperparameters):
+    if model_type == 'RandomForestRegressor':
+        return RandomForestRegressor(**hyperparameters)
+    elif model_type == 'SVR':
+        return SVR(**hyperparameters)
+    elif model_type == 'XGBRegressor':
+        return XGBRegressor(**hyperparameters)
+    elif model_type == 'Ridge':
+        return Ridge(**hyperparameters)
+    else:
+        raise ValueError(f"Model type {model_type} is not supported.")
 
-    # Generate and log boxplots
-    for column in X.columns:
-        plt.figure(figsize=(10, 6))
-        sns.boxplot(x=X[column])
-        plt.title(f'Boxplot of {column}')
-        boxplot_path = os.path.join(boxplot_dir, f"{column}_boxplot.png")
-        plt.savefig(boxplot_path)
+# Train and log model
+def train_and_log_model(model, X_train, X_test, y_train, y_test, config, run_name):
+    with mlflow.start_run(run_name=run_name):
+        model.fit(X_train, y_train)
+        predictions = model.predict(X_test)
+        
+        mse = mean_squared_error(y_test, predictions)
+        mae = mean_absolute_error(y_test, predictions)
+        rmse = mean_squared_error(y_test, predictions, squared=False)
+        r2 = r2_score(y_test, predictions)
+        
+        mlflow.log_param("model_type", config['model']['type'])
+        mlflow.log_params(config['model']['hyperparameters'])
+        mlflow.log_metric("mse", mse)
+        mlflow.log_metric("mae", mae)
+        mlflow.log_metric("rmse", rmse)
+        mlflow.log_metric("r2", r2)
+        mlflow.sklearn.log_model(model, "model")
+
+        run_artifact_dir = mlflow.get_artifact_uri()
+        eda_dir = os.path.join(run_artifact_dir, "EDA")
+        boxplot_dir = os.path.join(eda_dir, "boxplots")
+        os.makedirs(boxplot_dir, exist_ok=True)
+
+        config_path = os.path.join(run_artifact_dir, f"{config['model']['type']}.json")
+        with open(config_path, 'w') as config_file:
+            json.dump(config, config_file)
+        mlflow.log_artifact(config_path, "config")
+
+        for column in X_train.columns:
+            plt.figure(figsize=(10, 6))
+            sns.boxplot(x=X_train[column])
+            plt.title(f'Boxplot of {column}')
+            boxplot_path = os.path.join(boxplot_dir, f"{column}_boxplot.png")
+            plt.savefig(boxplot_path)
+            plt.close()
+            mlflow.log_artifact(boxplot_path, "boxplots")
+        
+        corr = X_train.corr()
+        plt.figure(figsize=(12, 10))
+        sns.heatmap(corr, annot=True, cmap='coolwarm', fmt='.2f')
+        plt.title('Correlation Matrix')
+        corr_path = os.path.join(eda_dir, 'correlation_matrix.png')
+        plt.savefig(corr_path)
         plt.close()
-        mlflow.log_artifact(boxplot_path, "boxplots")
-    
-    # Generate and log correlation matrix
-    corr = X.corr()
-    plt.figure(figsize=(12, 10))
-    sns.heatmap(corr, annot=True, cmap='coolwarm', fmt='.2f')
-    plt.title('Correlation Matrix')
-    corr_path = os.path.join(eda_dir, 'correlation_matrix.png')
-    plt.savefig(corr_path)
-    plt.close()
-    mlflow.log_artifact(corr_path, "EDA")
+        mlflow.log_artifact(corr_path, "EDA")
 
-print("Done logging to MLflow")
+# Main execution
+def main():
+    experiment_name = "ESG"
+    current_config_path = 'model_configs/XGBoost_ESG.json'  
+    data_path = 'data/processed_data/cleaned_data.csv'
+    mlflow_dir = "/workspaces/ESG_Credit_Approval/mlflow"
+
+    mlflow.set_tracking_uri(mlflow_dir)
+    
+    config = load_config(current_config_path)
+    
+    features = config['feature_selection']['features_to_keep']
+    target_variable = config['target_variable']
+    X, y = load_data(data_path, features, target_variable, config['missing_value_imputation'])
+    
+    X_train, X_test, y_train, y_test = split_data(X, y, config['data_split']['test_size'], config['data_split']['random_state'])
+    
+    model = get_model(config['model']['type'], config['model']['hyperparameters'])
+    
+    mlflow.sklearn.autolog()
+    mlflow.set_experiment(experiment_name)
+    
+    run_name = f"{config['model']['type']} run {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+    train_and_log_model(model, X_train, X_test, y_train, y_test, config, run_name)
+
+if __name__ == "__main__":
+    try:
+        main()
+        logging.info("Done logging to MLflow")
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")

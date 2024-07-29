@@ -1,6 +1,9 @@
-.venv_esg_proj/
+.venv/
+
 data/bond/
 data/esg/
 data/financial_data/
 data/risk/
-mlflowlogs/
+
+airflow/
+mlflow/
