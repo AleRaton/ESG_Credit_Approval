@@ -1,9 +1,10 @@
-.venv/
+.venv/*
 
-data/bond/
-data/esg/
-data/financial_data/
-data/risk/
+data/bond/*
+data/esg/*
+data/financial_data/*
+data/risk/*
 
-airflow/
-mlflow/
+airflow/*
+!airflow/docker-compose.yaml
+mlflow/*
