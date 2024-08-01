@@ -4,7 +4,7 @@ data/bond/*
 data/esg/*
 data/financial_data/*
 data/risk/*
-
+data/spread/*
 airflow/*
 !airflow/docker-compose.yaml
 mlflow/*
