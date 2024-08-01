@@ -103,8 +103,8 @@ def train_and_log_model(model, X_train, X_test, y_train, y_test, config, run_nam
 
 # Main execution
 def main():
-    experiment_name = "ESG"
-    current_config_path = 'model_configs/XGBoost_ESG.json'  
+    experiment_name = "NO ESG"
+    current_config_path = 'model_configs/XGBoost.json'  
     data_path = 'data/processed_data/cleaned_data.csv'
     mlflow_dir = "/workspaces/ESG_Credit_Approval/mlflow"
 
